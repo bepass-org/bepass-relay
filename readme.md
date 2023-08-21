@@ -83,7 +83,7 @@ It's simple! Just
 Run the following command to execute the installation script:
 
 ```
-curl -Ls https://github.com/Ptechgithub/cf-bepass/raw/main/volunteer.sh | bash
+curl -Ls https://raw.githubusercontent.com/Ptechgithub/cf-bepass/master/volunteer.sh | bash
 ```
 
 or
