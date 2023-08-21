@@ -10,7 +10,7 @@ print_with_delay() {
     done
 }
 
-# Introduction  animation
+# Introduction animation
 echo
 print_with_delay "**** Thanks for Becoming a Volunteer Maintainer ****" 0.05
 echo
