@@ -57,7 +57,7 @@ systemctl start cfb.service
 systemctl enable cfb.service
 
 # Check the status of the service
-systemctl status cfb.service
+(systemctl status cfb.service)
 
 # Display message after installation
 if systemctl is-active --quiet cfb.service; then
