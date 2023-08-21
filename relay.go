@@ -58,7 +58,7 @@ func (server *Server) Run() {
 
 func (client *Client) handleRequest() {
 	reader := bufio.NewReader(client.conn)
-	header, err := reader.ReadBytes(byte(13))
+	header, _ := reader.ReadBytes(byte(13))
 	if len(header) < 1 {
 		return
 	}
