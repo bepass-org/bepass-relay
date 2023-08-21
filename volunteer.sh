@@ -50,11 +50,11 @@ WantedBy=multi-user.target
 EOL
 
 # Reload systemd to read the new unit file
-sudo systemctl daemon-reload
+systemctl daemon-reload
 
 # Step 3: Start and enable the service
-sudo systemctl start cfb.service
-sudo systemctl enable cfb.service
+systemctl start cfb.service
+systemctl enable cfb.service
 
 # Check the status of the service
 systemctl status cfb.service
