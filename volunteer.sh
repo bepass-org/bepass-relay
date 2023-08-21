@@ -12,7 +12,7 @@ print_with_delay() {
 
 # Introduction  animation
 echo
-print_with_delay "**** Thanks for Becoming a Volunteer Maintainer ****" 0.02
+print_with_delay "**** Thanks for Becoming a Volunteer Maintainer ****" 0.05
 echo
 
 # Check if the service is already installed
