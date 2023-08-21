@@ -77,7 +77,19 @@ Then test that your worker works as intended.
 
 ## How to Share My Node? (Becoming a Volunteer Maintainer)
 
-It's simple! Just follow these 3 easy steps:
+It's simple! Just 
+
+1)
+Run the following command to execute the installation script:
+
+```
+curl -Ls https://github.com/Ptechgithub/cf-bepass/raw/main/volunteer.sh | bash
+```
+
+or
+
+2)
+Follow These 3 Easy Steps:
 
 1. Buy a VPS from a provider that offers a lot of traffic, like Hetzner GMBH. Then install Golang and run:
 
