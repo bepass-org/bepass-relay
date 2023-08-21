@@ -92,11 +92,11 @@ It's simple! Just follow these 3 easy steps:
 2. Make a systemd service for Bepass in **/etc/systemd/system/cfb.service**:
 
    ```bash
-   sudo nano /etc/systemd/system/cfb.service
+   nano /etc/systemd/system/cfb.service
    ```
 
    And paste the following code:
-
+      ```
    	[Unit]
    	Description=CF Bepass Service
    	
@@ -105,23 +105,23 @@ It's simple! Just follow these 3 easy steps:
    	
    	[Install]
    	WantedBy=multi-user.target
-
+      ```
    Then reload systemd to read this unit file with:
-
-   	$ sudo systemctl daemon-reload
-
+      ```bash
+   	systemctl daemon-reload
+      ```
    Start the service with:
-
-   	$ sudo systemctl start cfb.service
-
+      ```bash
+   	systemctl start cfb.service
+      ```
    And enable it during startup with:
-
-   	$ sudo systemctl enable cfb.service
-
+      ```bash
+   	systemctl enable cfb.service
+      ```
    You can check the status of the service with:
-
-   	$ systemctl status cfb.service
-
+      ```bash
+   	systemctl status cfb.service
+      ```
 3. Submit a new issue with the **Volunteer Node Maintainer** title and share your server IP address and how long your server will last! (Minimum requirement: at least 3 months)
 
 # Progress
