@@ -35,6 +35,68 @@ func New(config *Config) *Server {
 	}
 }
 
+func checkIfSourceIsAllowed(ip string) bool {
+	// Check if IPv6
+	if strings.Contains(ip, ":") {
+		// Allow IPv6 localhost
+		if strings.HasPrefix(ip, "[::1]") {
+			return true
+		}
+
+		// Check against allowed IPv6 CIDR ranges
+		cfv6Ranges := []string{
+			"2400:cb00::/32",
+			"2606:4700::/32",
+			"2803:f800::/32",
+			"2405:b500::/32",
+			"2405:8100::/32",
+			"2a06:98c0::/29",
+			"2c0f:f248::/32",
+			// etc
+		}
+
+		for _, r := range cfv6Ranges {
+			if strings.HasPrefix(ip, r) {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	// Check IPv4
+	if strings.HasPrefix(ip, "127.0.0.1") {
+		return true
+	}
+
+	cfv4Ranges := []string{
+		"173.245.48.0/20",
+		"103.21.244.0/22",
+		"103.22.200.0/22",
+		"103.31.4.0/22",
+		"141.101.64.0/18",
+		"108.162.192.0/18",
+		"190.93.240.0/20",
+		"188.114.96.0/20",
+		"197.234.240.0/22",
+		"198.41.128.0/17",
+		"162.158.0.0/15",
+		"104.16.0.0/13",
+		"104.24.0.0/14",
+		"172.64.0.0/13",
+		"131.0.72.0/22",
+		// etc
+	}
+
+	for _, r := range cfv4Ranges {
+		if strings.HasPrefix(ip, r) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Run ...
 func (server *Server) Run() {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", server.host, server.port))
@@ -47,6 +109,12 @@ func (server *Server) Run() {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		ip := conn.RemoteAddr().String()
+		if !checkIfSourceIsAllowed(ip) {
+			_ = conn.Close()
+			continue
 		}
 
 		client := &Client{
@@ -63,6 +131,9 @@ func (client *Client) handleRequest() {
 		return
 	}
 	address := strings.Replace(string(header[:len(header)-1]), "$", ":", -1)
+	if strings.Contains(address, "temp-mail.org") {
+		return
+	}
 	fmt.Printf("Dialing to %s...\r\n", address)
 	rConn, err := net.Dial("tcp", address)
 	if err != nil {
@@ -77,10 +148,10 @@ func (client *Client) handleRequest() {
 	_ = rConn.Close()
 }
 
-func Copy(reader io.Reader, writer io.Writer) {
+func Copy(src io.Reader, dst io.Writer) {
 	buf := make([]byte, 256*1024)
 
-	_, err := io.CopyBuffer(writer, reader, buf[:cap(buf)])
+	_, err := io.CopyBuffer(dst, src, buf[:cap(buf)])
 	if err != nil {
 		fmt.Println(err)
 	}

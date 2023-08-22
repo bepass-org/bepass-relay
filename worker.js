@@ -187,6 +187,8 @@ async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawCli
     async function connectAndWrite(address, port, rawHeaderEnabled) {
         const mmd = addressRemote + "$" + portRemote
         if(!rawHeaderEnabled && isIP(address) && (inRange(address, cf_ipv6) || inRange(address, cf_ipv4))){
+            address = proxyIP
+            port = proxyPort
             rawHeaderEnabled = true;
         }
         const tcpSocket = connect({
