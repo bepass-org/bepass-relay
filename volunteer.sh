@@ -48,7 +48,7 @@ if [[ $option == "1" ]]; then
     cd /opt || exit 1
     sudo git clone https://github.com/uoosef/cf-bepass.git
     cd cf-bepass || exit 1
-    CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath relay.go
+    CGO_ENABLED=0 go build -ldflags '-s -w -trimpath' -o relay_release relay.go
 
     # Step 2: Create a systemd service for Bepass
     cat > /etc/systemd/system/cfb.service <<EOL
