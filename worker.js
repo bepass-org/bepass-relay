@@ -1,5 +1,5 @@
 /**
- * Welcome to Cloudflare Workers! This is your first worker.
+ * Welcome to Cloudflare Workers!This is your first worker.
  *
  * - Run "npm run dev" in your terminal to start a development server
  * - Open a browser tab at http://localhost:8787/ to see your worker in action
@@ -10,7 +10,7 @@
 // @ts-ignore
 import { connect } from 'cloudflare:sockets';
 
-const proxyIPs = ['x.x.x.x'];
+const proxyIPs = ['iran.ptechfree.eu.org'];
 const proxyPort = 6666;
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 
