@@ -88,13 +88,11 @@ func getOrCreateUDPChanFromWebSocketPacket(packet []byte, destination string) (c
 			case dataThatReceivedFromWebsocketThroughChannel := <-udpToTCPChannels[channelID]:
 				_, err := udpConn.Write(dataThatReceivedFromWebsocketThroughChannel[8:])
 				if err != nil {
-					fmt.Print("fuck")
 					delete(udpToTCPChannels, channelID)
 					return
 				}
 			case dataThatReceivedFromUDPReadChan := <-udpReadChanFromConn:
 				if dataThatReceivedFromUDPReadChan == nil {
-					fmt.Print("fuck2")
 					delete(udpToTCPChannels, channelID)
 					return
 				}
