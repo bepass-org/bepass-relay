@@ -49,7 +49,7 @@ It's simple! Just buy a VPS from a provider that offers a lot of traffic, then i
 tmux
 git clone https://github.com/uoosef/cf-bepass.git
 cd cf-bepass
-go run relay.go -b 0.0.0.0 -p 6666 
+go run *.go -b 0.0.0.0 -p 6666 
 ```
 
 Then press ctrl+b and then d. Then edit the worker.js:
@@ -86,7 +86,7 @@ It's simple! Just follow these 3 easy steps:
    cd /opt
    git clone https://github.com/uoosef/cf-bepass.git
    cd cf-bepass
-   CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath relay.go
+   CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath *.go
    ```
 
 2. Make a systemd service for Bepass in **/etc/systemd/system/cfb.service**:
