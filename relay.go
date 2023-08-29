@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -9,6 +10,34 @@ import (
 	"net"
 	"strings"
 )
+
+var cfRanges = []string{
+	"127.0.0.0/8",
+	"103.21.244.0/22",
+	"103.22.200.0/22",
+	"103.31.4.0/22",
+	"104.16.0.0/12",
+	"108.162.192.0/18",
+	"131.0.72.0/22",
+	"141.101.64.0/18",
+	"162.158.0.0/15",
+	"172.64.0.0/13",
+	"173.245.48.0/20",
+	"188.114.96.0/20",
+	"190.93.240.0/20",
+	"197.234.240.0/22",
+	"198.41.128.0/17",
+	"::1/128",
+	"2400:cb00::/32",
+	"2405:8100::/32",
+	"2405:b500::/32",
+	"2606:4700::/32",
+	"2803:f800::/32",
+	"2c0f:f248::/32",
+	"2a06:98c0::/29",
+}
+
+var ipRange []*net.IPNet
 
 // Server ...
 type Server struct {
@@ -35,66 +64,28 @@ func New(config *Config) *Server {
 	}
 }
 
-func checkIfSourceIsAllowed(ip string) bool {
-	// Check if IPv6
-	if strings.Contains(ip, ":") {
-		// Allow IPv6 localhost
-		if strings.HasPrefix(ip, "[::1]") {
-			return true
-		}
+func checkIfSourceIsAllowed(ipAddress string) bool {
+	for _, r := range ipRange {
+		ip := net.ParseIP(ipAddress)
 
-		// Check against allowed IPv6 CIDR ranges
-		cfv6Ranges := []string{
-			"2400:cb00::/32",
-			"2606:4700::/32",
-			"2803:f800::/32",
-			"2405:b500::/32",
-			"2405:8100::/32",
-			"2a06:98c0::/29",
-			"2c0f:f248::/32",
-			// etc
-		}
-
-		for _, r := range cfv6Ranges {
-			if strings.HasPrefix(ip, r) {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	// Check IPv4
-	if strings.HasPrefix(ip, "127.0.0.1") {
-		return true
-	}
-
-	cfv4Ranges := []string{
-		"173.245.48.0/20",
-		"103.21.244.0/22",
-		"103.22.200.0/22",
-		"103.31.4.0/22",
-		"141.101.64.0/18",
-		"108.162.192.0/18",
-		"190.93.240.0/20",
-		"188.114.96.0/20",
-		"197.234.240.0/22",
-		"198.41.128.0/17",
-		"162.158.0.0/15",
-		"104.16.0.0/13",
-		"104.24.0.0/14",
-		"172.64.0.0/13",
-		"131.0.72.0/22",
-		// etc
-	}
-
-	for _, r := range cfv4Ranges {
-		if strings.HasPrefix(ip, r) {
+		if r.Contains(ip) {
 			return true
 		}
 	}
 
 	return false
+}
+
+func init() {
+	ipRange = []*net.IPNet{}
+
+	for _, r := range cfRanges {
+		_, cidr, err := net.ParseCIDR(r)
+		if err != nil {
+			continue
+		}
+		ipRange = append(ipRange, cidr)
+	}
 }
 
 // Run ...
@@ -112,7 +103,14 @@ func (server *Server) Run() {
 		}
 
 		ip := conn.RemoteAddr().String()
-		if !checkIfSourceIsAllowed(ip) {
+		sh, sp, err := net.SplitHostPort(ip)
+		if err != nil {
+			fmt.Println(fmt.Errorf("unable to parse host %s", ip))
+			_ = conn.Close()
+			continue
+		}
+		if !checkIfSourceIsAllowed(sh) {
+			fmt.Println(fmt.Errorf("request from unacceptable source blocked: %s:%s", sh, sp))
 			_ = conn.Close()
 			continue
 		}
@@ -130,30 +128,68 @@ func (client *Client) handleRequest() {
 	if len(header) < 1 {
 		return
 	}
-	address := strings.Replace(string(header[:len(header)-1]), "$", ":", -1)
+	inputHeader := strings.Split(string(header[:len(header)-1]), "@")
+	if len(inputHeader) < 2 {
+		return
+	}
+	network := "tcp"
+	if inputHeader[0] == "udp" {
+		network = "udp"
+	}
+	address := strings.Replace(inputHeader[1], "$", ":", -1)
 	if strings.Contains(address, "temp-mail.org") {
 		return
 	}
-	fmt.Printf("Dialing to %s...\r\n", address)
-	rConn, err := net.Dial("tcp", address)
-	if err != nil {
-		fmt.Println(fmt.Errorf("failed to connect to socket: %v", err))
+
+	if network == "udp" {
+		handleUDPOverTCP(client.conn, address)
 		return
 	}
 
 	// transmit data
-	go Copy(client.conn, rConn)
-	Copy(rConn, client.conn)
+	log.Printf("%s Dialing to %s...\r\n", network, address)
+	rConn, err := net.Dial(network, address)
+	if err != nil {
+		log.Println(fmt.Errorf("failed to connect to socket: %v", err))
+		return
+	}
+
+	go Copy(network, client.conn, rConn)
+	Copy(network, rConn, client.conn)
 
 	_ = rConn.Close()
+	_ = client.conn.Close()
 }
 
-func Copy(src io.Reader, dst io.Writer) {
+func Copy(network string, src io.Reader, dst io.Writer) {
 	buf := make([]byte, 256*1024)
 
-	_, err := io.CopyBuffer(dst, src, buf[:cap(buf)])
-	if err != nil {
-		fmt.Println(err)
+	for {
+		nr, er := src.Read(buf)
+		if nr > 0 {
+			nw, ew := dst.Write(buf[0:nr])
+			if nw < 0 || nr < nw {
+				nw = 0
+				if ew == nil {
+					log.Println("error")
+					return
+				}
+			}
+			if ew != nil {
+				log.Println(ew)
+				return
+			}
+			if nr != nw {
+				log.Println("error")
+				return
+			}
+		}
+		if er != nil {
+			if er != errors.New("EOF") {
+				log.Println(er)
+			}
+			return
+		}
 	}
 }
 
