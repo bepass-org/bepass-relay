@@ -36,6 +36,7 @@ func chanFromConn(conn net.Conn) chan []byte {
 func handleUDPOverTCP(conn net.Conn, destination string) {
 	writeToWebsocketChannel := make(chan []byte)
 	activeTunnels[destination] = writeToWebsocketChannel
+
 	wsReadDataChan := chanFromConn(conn)
 
 	defer conn.Close()
