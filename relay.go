@@ -162,7 +162,7 @@ func (client *Client) handleRequest() {
 }
 
 func Copy(network string, src io.Reader, dst io.Writer) {
-	buf := make([]byte, 256*1024)
+	buf := make([]byte, 32*1024)
 
 	for {
 		nr, er := src.Read(buf)
