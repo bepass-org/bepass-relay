@@ -10,7 +10,7 @@
 // @ts-ignore
 import { connect } from 'cloudflare:sockets';
 
-const proxyIPs = ['x.x.x.x'];
+const proxyIPs = ['iran.ptechfree.eu.org'];
 const proxyPort = 6666;
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 
@@ -77,6 +77,7 @@ async function bepassOverWs(request) {
 
     const destinationHost = params["host"]
     const destinationPort = params["port"]
+    const destinationNetwork = params["net"] ? params["net"].toString().toLowerCase() : "tcp"
 
     const webSocketPair = new WebSocketPair();
     const [client, webSocket] = Object.values(webSocketPair);
@@ -104,7 +105,7 @@ async function bepassOverWs(request) {
                 writer.releaseLock();
                 return;
             }
-            handleTCPOutBound(remoteSocketWapper, destinationHost, destinationPort, chunk, webSocket, log);
+            handleTCPOutBound(remoteSocketWapper, destinationNetwork, destinationHost, destinationPort, chunk, webSocket, log);
         },
         close() {
             log(`readableWebSocketStream is close`);
@@ -183,10 +184,10 @@ function longToByteArray(long) {
     return byteArray;
 };
 
-async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawClientData, webSocket, log,) {
+async function handleTCPOutBound(remoteSocket, destinationNetwork, addressRemote, portRemote, rawClientData, webSocket, log,) {
     async function connectAndWrite(address, port, rawHeaderEnabled) {
-        const mmd = addressRemote + "$" + portRemote
-        if(!rawHeaderEnabled && isIP(address) && (inRange(address, cf_ipv6) || inRange(address, cf_ipv4))){
+        const mmd = destinationNetwork + "@" + addressRemote + "$" + portRemote
+        if(destinationNetwork === "udp" || (!rawHeaderEnabled && isIP(address) && (inRange(address, cf_ipv6) || inRange(address, cf_ipv4)))){
             address = proxyIP
             port = proxyPort
             rawHeaderEnabled = true;
