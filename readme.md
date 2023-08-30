@@ -4,7 +4,7 @@ This repository contains a new **worker.js** that aims for better solutions in t
 
 As you know, Cloudflare workers are currently unable to connect to hosts that have Cloudflare IPs (this is considered a loopback).
 
-# How This Works
+# How it Works
 
 It aims to fix bugs from the previous version and improve its functionality with the help of **relay nodes**.
 
@@ -14,7 +14,7 @@ It aims to fix bugs from the previous version and improve its functionality with
 2. From the main navbar, choose **Workers & Pages**
 3. Click the **Create Application** button
 4. Click the **Create Worker** button
-5. Copy the worker.js file contents from this repository
+5. Copy the [worker.js](https://github.com/ErfanTech/cf-bepass/blob/master/worker.js) file contents from this repository
 6. Fill in a name for your worker and click the **Deploy** button
 7. Click the **Quick Edit** button
 8. Paste your clipboard contents and replace the worker's default code
