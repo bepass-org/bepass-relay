@@ -10,7 +10,7 @@
 // @ts-ignore
 import { connect } from 'cloudflare:sockets';
 
-const proxyIPs = ['iran.ptechfree.eu.org'];
+const proxyIPs = ['relay1.bepass.org'];
 const proxyPort = 6666;
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 
