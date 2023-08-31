@@ -2,14 +2,112 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"slices"
 	"strings"
 )
+
+var torrentTrackers = []string{
+	"93.158.213.92",
+	"102.223.180.235",
+	"23.134.88.6",
+	"185.243.218.213",
+	"208.83.20.20",
+	"91.216.110.52",
+	"83.146.97.90",
+	"23.157.120.14",
+	"185.102.219.163",
+	"163.172.29.130",
+	"156.234.201.18",
+	"209.141.59.16",
+	"34.94.213.23",
+	"192.3.165.191",
+	"130.61.55.93",
+	"109.201.134.183",
+	"95.31.11.224",
+	"83.102.180.21",
+	"192.95.46.115",
+	"198.100.149.66",
+	"95.216.74.39",
+	"51.68.174.87",
+	"37.187.111.136",
+	"51.15.79.209",
+	"45.92.156.182",
+	"49.12.76.8",
+	"5.196.89.204",
+	"62.233.57.13",
+	"45.9.60.30",
+	"35.227.12.84",
+	"179.43.155.30",
+	"94.243.222.100",
+	"207.241.231.226",
+	"207.241.226.111",
+	"51.159.54.68",
+	"82.65.115.10",
+	"95.217.167.10",
+	"86.57.161.157",
+	"83.31.30.230",
+	"94.103.87.87",
+	"160.119.252.41",
+	"193.42.111.57",
+	"80.240.22.46",
+	"107.189.31.134",
+	"104.244.79.114",
+	"85.239.33.28",
+	"61.222.178.254",
+	"38.7.201.142",
+	"51.81.222.188",
+	"103.196.36.31",
+	"23.153.248.2",
+	"73.170.204.100",
+	"176.31.250.174",
+	"149.56.179.233",
+	"212.237.53.230",
+	"185.68.21.244",
+	"82.156.24.219",
+	"216.201.9.155",
+	"51.15.41.46",
+	"85.206.172.159",
+	"104.244.77.87",
+	"37.27.4.53",
+	"192.3.165.198",
+	"15.204.205.14",
+	"103.122.21.50",
+	"104.131.98.232",
+	"173.249.201.201",
+	"23.254.228.89",
+	"5.102.159.190",
+	"65.130.205.148",
+	"119.28.71.45",
+	"159.69.65.157",
+	"160.251.78.190",
+	"107.189.7.143",
+	"159.65.224.91",
+	"185.217.199.21",
+	"91.224.92.110",
+	"161.97.67.210",
+	"51.15.3.74",
+	"209.126.11.233",
+	"37.187.95.112",
+	"167.99.185.219",
+	"144.91.88.22",
+	"88.99.2.212",
+	"37.59.48.81",
+	"95.179.130.187",
+	"51.15.26.25",
+	"192.9.228.30",
+}
+
+func checkIfDestinationIsBlocked(ipAddress string) bool {
+	if slices.Contains(torrentTrackers, ipAddress) {
+		return true
+	}
+	return false
+}
 
 var cfRanges = []string{
 	"127.0.0.0/8",
@@ -94,7 +192,9 @@ func (server *Server) Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer listener.Close()
+	defer func() {
+		_ = listener.Close()
+	}()
 
 	for {
 		conn, err := listener.Accept()
@@ -123,6 +223,9 @@ func (server *Server) Run() {
 }
 
 func (client *Client) handleRequest() {
+	defer func() {
+		_ = client.conn.Close()
+	}()
 	reader := bufio.NewReader(client.conn)
 	header, err := reader.ReadBytes(byte(13))
 	if len(header) < 1 {
@@ -141,6 +244,33 @@ func (client *Client) handleRequest() {
 		return
 	}
 
+	dh, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return
+	}
+	// check if ip is not blocked
+	blockFlag := false
+	addr := net.ParseIP(dh)
+	if addr != nil {
+		if checkIfDestinationIsBlocked(dh) {
+			blockFlag = true
+		}
+	} else {
+		ips, _ := net.LookupIP(dh)
+		for _, ip := range ips {
+			if ipv4 := ip.To4(); ipv4 != nil {
+				if checkIfDestinationIsBlocked(ipv4.String()) {
+					blockFlag = true
+				}
+			}
+		}
+	}
+
+	if blockFlag {
+		log.Println(fmt.Errorf("destination host is blocked: %s", address))
+		return
+	}
+
 	if network == "udp" {
 		handleUDPOverTCP(client.conn, address)
 		return
@@ -148,48 +278,27 @@ func (client *Client) handleRequest() {
 
 	// transmit data
 	log.Printf("%s Dialing to %s...\r\n", network, address)
+
 	rConn, err := net.Dial(network, address)
+
 	if err != nil {
 		log.Println(fmt.Errorf("failed to connect to socket: %v", err))
 		return
 	}
 
-	go Copy(network, client.conn, rConn)
-	Copy(network, rConn, client.conn)
+	// transmit data
+	go Copy(client.conn, rConn)
+	Copy(rConn, client.conn)
 
 	_ = rConn.Close()
-	_ = client.conn.Close()
 }
 
-func Copy(network string, src io.Reader, dst io.Writer) {
-	buf := make([]byte, 32*1024)
+func Copy(src io.Reader, dst io.Writer) {
+	buf := make([]byte, 256*1024)
 
-	for {
-		nr, er := src.Read(buf)
-		if nr > 0 {
-			nw, ew := dst.Write(buf[0:nr])
-			if nw < 0 || nr < nw {
-				nw = 0
-				if ew == nil {
-					log.Println("error")
-					return
-				}
-			}
-			if ew != nil {
-				log.Println(ew)
-				return
-			}
-			if nr != nw {
-				log.Println("error")
-				return
-			}
-		}
-		if er != nil {
-			if er != errors.New("EOF") {
-				log.Println(er)
-			}
-			return
-		}
+	_, err := io.CopyBuffer(dst, src, buf[:cap(buf)])
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 

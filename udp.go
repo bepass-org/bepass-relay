@@ -39,7 +39,6 @@ func handleUDPOverTCP(conn net.Conn, destination string) {
 
 	wsReadDataChan := chanFromConn(conn)
 
-	defer conn.Close()
 	defer delete(activeTunnels, destination)
 	for {
 		select {
