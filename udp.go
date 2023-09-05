@@ -1,7 +1,7 @@
+// UDP is a package that provides functionality for handling UDP traffic over TCP connections.
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 )
@@ -11,54 +11,48 @@ var (
 	udpToTCPChannels = make(map[string]chan []byte)
 )
 
-func chanFromConn(conn net.Conn) chan []byte {
-	c := make(chan []byte)
-
-	go func() {
-		b := make([]byte, 32*1024)
-
-		for {
-			n, err := conn.Read(b)
-			if n > 0 {
-				c <- b[:n]
-			}
-			if err != nil {
-				log.Printf("Connection closed: %v--->%v\r\n", conn.LocalAddr(), conn.RemoteAddr())
-				c <- nil
-				break
-			}
+// readFromConn reads data from a net.Conn and sends it to a channel.
+func readFromConn(conn net.Conn, c chan<- []byte) {
+	defer close(c) // Close the channel when done.
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := conn.Read(buf)
+		if n > 0 {
+			c <- append([]byte(nil), buf[:n]...) // Send a copy of the slice.
 		}
-	}()
-
-	return c
+		if err != nil {
+			log.Printf("Connection closed: %v--->%v\r\n", conn.LocalAddr(), conn.RemoteAddr())
+			return
+		}
+	}
 }
 
+// handleUDPOverTCP handles UDP-over-TCP traffic.
 func handleUDPOverTCP(conn net.Conn, destination string) {
+	defer delete(activeTunnels, destination)
+
 	writeToWebsocketChannel := make(chan []byte)
 	activeTunnels[destination] = writeToWebsocketChannel
 
-	wsReadDataChan := chanFromConn(conn)
+	wsReadDataChan := make(chan []byte)
+	go readFromConn(conn, wsReadDataChan)
 
-	defer delete(activeTunnels, destination)
 	for {
 		select {
-		case dataThatReceivedFromWebsocket := <-wsReadDataChan:
-			if dataThatReceivedFromWebsocket == nil {
+		case dataFromWS := <-wsReadDataChan:
+			if dataFromWS == nil {
 				return
-			} else {
-				c, err := getOrCreateUDPChanFromWebSocketPacket(dataThatReceivedFromWebsocket, destination)
-				if err == nil {
-					c <- dataThatReceivedFromWebsocket
-				} else {
-					log.Printf("unable to create connection to destination network: %v\r\n", err)
-				}
 			}
-		case dataThatReceivedFromUDPChan := <-activeTunnels[destination]:
-			// it never is null
-			if dataThatReceivedFromUDPChan != nil {
-				_, err := conn.Write(dataThatReceivedFromUDPChan)
+			if udpWriteChan, err := getOrCreateUDPChan(destination, string(dataFromWS[:8])); err == nil {
+				udpWriteChan <- dataFromWS
+			} else {
+				log.Printf("Unable to create connection to destination network: %v\r\n", err)
+			}
+		case dataFromUDP := <-activeTunnels[destination]:
+			if dataFromUDP != nil {
+				_, err := conn.Write(dataFromUDP)
 				if err != nil {
-					log.Printf("unable to write on destination network: %v\r\n", err)
+					log.Printf("Unable to write on destination network: %v\r\n", err)
 					return
 				}
 			}
@@ -66,42 +60,41 @@ func handleUDPOverTCP(conn net.Conn, destination string) {
 	}
 }
 
-func getOrCreateUDPChanFromWebSocketPacket(packet []byte, destination string) (chan []byte, error) {
-	// the first 8 byte of each packet is user random id(6bytes) + channel id(2bytes)
-	if len(packet) < 8 {
-		return nil, fmt.Errorf("too small packet")
-	}
-	packetHeader := packet[:8]
-	channelID := destination + string(packetHeader)
+// getOrCreateUDPChan returns an existing UDP channel or creates a new one.
+func getOrCreateUDPChan(destination, header string) (chan []byte, error) {
+	channelID := destination + header
 	if udpWriteChan, ok := udpToTCPChannels[channelID]; ok {
 		return udpWriteChan, nil
 	}
+
 	udpConn, err := net.Dial("udp", destination)
 	if err != nil {
 		return nil, err
 	}
+
 	udpToTCPChannels[channelID] = make(chan []byte)
-	udpReadChanFromConn := chanFromConn(udpConn)
+	udpReadChanFromConn := make(chan []byte)
+	go readFromConn(udpConn, udpReadChanFromConn)
+
 	go func() {
+		defer delete(udpToTCPChannels, channelID)
 		for {
 			select {
-			case dataThatReceivedFromWebsocketThroughChannel := <-udpToTCPChannels[channelID]:
-				_, err := udpConn.Write(dataThatReceivedFromWebsocketThroughChannel[8:])
+			case dataFromWS := <-udpToTCPChannels[channelID]:
+				_, err := udpConn.Write(dataFromWS[8:])
 				if err != nil {
-					delete(udpToTCPChannels, channelID)
 					return
 				}
-			case dataThatReceivedFromUDPReadChan := <-udpReadChanFromConn:
-				if dataThatReceivedFromUDPReadChan == nil {
-					delete(udpToTCPChannels, channelID)
+			case dataFromUDP := <-udpReadChanFromConn:
+				if dataFromUDP == nil {
 					return
 				}
 				if c, ok := activeTunnels[destination]; ok {
-					// no need to send userid
-					c <- append(packetHeader[6:], dataThatReceivedFromUDPReadChan...)
+					c <- append([]byte(header[6:]), dataFromUDP...)
 				}
 			}
 		}
 	}()
+
 	return udpToTCPChannels[channelID], nil
 }
