@@ -307,14 +307,10 @@ func Copy(src io.Reader, dst io.Writer) {
 }
 
 func main() {
-	var ip string
-	var port string
-	flag.StringVar(&ip, "b", "0.0.0.0", "Server IP address")
-	flag.StringVar(&port, "p", "6666", "Server Port number")
+	var config Config
+	flag.StringVar(&config.Host, "b", "0.0.0.0", "Server IP address")
+	flag.StringVar(&config.Port, "p", "6666", "Server Port number")
 	flag.Parse()
-	server := New(&Config{
-		Host: ip,
-		Port: port,
-	})
+	server := New(&config)
 	server.Run()
 }
