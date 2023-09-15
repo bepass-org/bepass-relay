@@ -1,30 +1,24 @@
-# Bepass Advanced Worker and Relay
+# Bepass Relay
 
-This repository contains a new **worker.js** that aims for better solutions in terms of **performance** and **features** regarding common worker issues such as supporting **IPv6**, the **UDP protocol**, and more stable communication with Cloudflare IPs (**loopback connections**).
+This repository contains a **Relay** for bepass workers that aims for better solutions in terms of **performance** and **features** regarding common worker issues such as supporting **IPv6**, the **UDP protocol**, and more stable communication with Cloudflare IPs (**loopback connections**).
 
 As you know, Cloudflare workers are currently unable to connect to hosts that have Cloudflare IPs (this is considered a loopback).
 
+# Important note
+
+**Attention: Relay deployment is not mandatory to use Bepass!**\
+\
+If you just want to use Bepass as an anti censorship tool and don't want to be a volunteer maintainer, that works fine for you, we already prepared about 10 public relays, so you don't have to do anything. This is just for people who want to help the project by becoming a volunteer maintainer or make a private relay for themselves.
+
 # How it Works
 
-It aims to fix bugs from the previous version and improve its functionality with the help of **relay nodes**.
+**Relay nodes** are servers **maintained by volunteer** users. These nodes help the worker support features that are not officially supported by Cloudflare workers.
+so if you want to connect to any host behind cloudflare cdn or use udp protocol for purposes such as online voice/video chat or gaming, the worker automatically detects that and forward your 
+traffic to a relay node that is maintained by a volunteer user(or yourself if you deploy a relay for yourself). then the relay node will forward your traffic to the destination and send the response back to you.
 
 ## How to Make a Cloudflare Worker
 
-1. Sign up at the [Cloudflare signup page](https://www.cloudflare.com/sign-up)
-2. From the main navbar, choose **Workers & Pages**
-3. Click the **Create Application** button
-4. Click the **Create Worker** button
-5. Copy the [worker.js](https://github.com/uoosef/cf-bepass/blob/master/worker.js) file contents from this repository
-6. Fill in a name for your worker and click the **Deploy** button
-7. Click the **Quick Edit** button
-8. Paste your clipboard contents and replace the worker's default code
-9. Click the **Save and Deploy** button
-10. Write down the newly created worker address, it should be something like **[name].[username].workers.dev**
-11. Change your Bepass configuration to **https://[name].[username].workers.dev/dns-query**
-
-## What is a Relay Node?
-
-Relay nodes are servers **maintained by volunteer** users. These nodes help the worker support features that are not officially supported by Cloudflare workers.
+Please follow the instructions at [Bepass worker](https://github.com/uoosef/bepass-worker) repository and make yourself a worker.
 
 ## How Does a Relay Node Work?
 
@@ -52,22 +46,9 @@ cd cf-bepass
 go run *.go -b 0.0.0.0 -p 6666 
 ```
 
-Then press ctrl+b and then d. Then edit the worker.js:
+Then press ctrl+b and then d. Then go to your cloudflare dashboard and open your worker with **Quick dit** button. Then change the following lines:
 
 ```js  
-/**
-* Welcome to Cloudflare Workers! This is your first worker.    
-*
-* - Run "npm run dev" in your terminal to start a development server   
-* - Open a browser tab at http://localhost:8787/ to see your worker in action
-* - Run "npm run deploy" to publish your worker
-*
-* Learn more at https://developers.cloudflare.com/workers/
-*/
-
-// @ts-ignore
-import { connect } from 'cloudflare:sockets';
-
 const proxyIPs = ['<Your IP goes here>'];
 const proxyPort = 6666;
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
@@ -129,8 +110,8 @@ It's simple! Just follow these 3 easy steps:
 - [x] Implement Relay
 - [x] Implement worker's range detection
 - [x] Better loopback support
-- [ ] Full IPv6 support
-- [ ] Full UDP support
+- [x] Full IPv6 support
+- [x] Full UDP support
 
 ## License
 
