@@ -1,4 +1,4 @@
 build/
 .idea
 nohup.out
-relay
+bepass-relay
