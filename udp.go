@@ -40,7 +40,7 @@ func handleUDPOverTCP(conn net.Conn, destination string) {
 	for {
 		select {
 		case dataFromWS := <-wsReadDataChan:
-			if dataFromWS == nil {
+			if dataFromWS == nil || len(dataFromWS) < 8 {
 				return
 			}
 			if udpWriteChan, err := getOrCreateUDPChan(destination, string(dataFromWS[:8])); err == nil {
@@ -81,6 +81,9 @@ func getOrCreateUDPChan(destination, header string) (chan []byte, error) {
 		for {
 			select {
 			case dataFromWS := <-udpToTCPChannels[channelID]:
+				if len(dataFromWS) < 8 {
+					return
+				}
 				_, err := udpConn.Write(dataFromWS[8:])
 				if err != nil {
 					return
