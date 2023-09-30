@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const BUFFER_SIZE = 256 * 1024
+
 type Server struct {
 	host string
 	port string
@@ -143,7 +145,7 @@ func (client *Client) handleRequest() {
 // encountered. Copy uses a fixed-size buffer to efficiently copy data between
 // the source and destination.
 func Copy(src io.Reader, dst io.Writer) {
-	buf := make([]byte, 256*1024)
+	buf := make([]byte, BUFFER_SIZE)
 
 	_, err := io.CopyBuffer(dst, src, buf[:cap(buf)])
 	if err != nil {
