@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/netip"
 	"strings"
 )
 
@@ -49,23 +50,21 @@ func (server *Server) Run() {
 			log.Fatal(err)
 		}
 
-		ip := conn.RemoteAddr().String()
-		sh, sp, err := net.SplitHostPort(ip)
+		src, err := netip.ParseAddrPort(conn.RemoteAddr().String())
 		if err != nil {
-			log.Printf("unable to parse host %s\n", ip)
-			_ = conn.Close()
-			continue
-		}
-		if !checkIfSourceIsAllowed(sh) {
-			log.Printf("request from unacceptable source blocked: %s:%s\n", sh, sp)
+			log.Printf("unable to parse host %v", conn.RemoteAddr())
 			_ = conn.Close()
 			continue
 		}
 
-		client := &Client{
-			conn: conn,
+		// Check if srcIP is in the whitelist
+		if !connFilter.isSourceAllowed(src.Addr()) {
+			log.Printf("blocked connection from: %v", src)
+			conn.Close()
+			continue
 		}
-		go client.handleRequest()
+
+		go (&Client{conn: conn}).handleRequest()
 	}
 }
 
@@ -97,21 +96,20 @@ func (client *Client) handleRequest() {
 	}
 	// check if ip is not blocked
 	blockFlag := false
-	addr := net.ParseIP(dh)
-	if addr != nil {
-		if checkIfDestinationIsBlocked(dh) {
-			blockFlag = true
+	addr, err := netip.ParseAddr(dh)
+	if err != nil {
+		// the host may not be an IP, try to resolve it
+		ips, err := net.LookupIP(dh)
+		if err != nil {
+			return
 		}
-	} else {
-		ips, _ := net.LookupIP(dh)
-		for _, ip := range ips {
-			if ipv4 := ip.To4(); ipv4 != nil {
-				if checkIfDestinationIsBlocked(ipv4.String()) {
-					blockFlag = true
-				}
-			}
-		}
+
+		// parse the first IP and use it
+		addr, _ = netip.AddrFromSlice(ips[0])
 	}
+
+	// If the address is invalid or not allowed as a destination, set the block flag.
+	blockFlag = !addr.IsValid() || !connFilter.isDestinationAllowed(addr)
 
 	if blockFlag {
 		log.Printf("destination host is blocked: %s\n", address)
