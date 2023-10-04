@@ -77,7 +77,10 @@ func getOrCreateUDPChan(destination, header string) (chan []byte, error) {
 	go readFromConn(udpConn, udpReadChanFromConn)
 
 	go func() {
-		defer delete(udpToTCPChannels, channelID)
+		defer func() {
+			delete(udpToTCPChannels, channelID)
+			_ = udpConn.Close()
+		}()
 		for {
 			select {
 			case dataFromWS := <-udpToTCPChannels[channelID]:
