@@ -126,14 +126,14 @@ func (client *Client) handleRequest() {
 
 	rConn, err := net.Dial(network, address)
 
-	defer func() {
-		_ = rConn.Close()
-	}()
-
 	if err != nil {
 		log.Println(fmt.Errorf("failed to connect to socket: %v", err))
 		return
 	}
+
+	defer func() {
+		_ = rConn.Close()
+	}()
 
 	// transmit data
 	go Copy(client.conn, rConn)
