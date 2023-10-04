@@ -18,7 +18,7 @@ traffic to a relay node that is maintained by a volunteer user(or yourself if yo
 
 ## How to Make a Cloudflare Worker
 
-Please follow the instructions at [Bepass worker](https://github.com/uoosef/bepass-worker) repository and make yourself a worker.
+Please follow the instructions at [Bepass worker](https://github.com/bepass-org/bepass-worker) repository and make yourself a worker.
 
 ## How Does a Relay Node Work?
 
@@ -41,8 +41,8 @@ It's simple! Just buy a VPS from a provider that offers a lot of traffic, then i
 
 ```bash
 tmux
-git clone https://github.com/uoosef/cf-bepass.git
-cd cf-bepass
+git clone https://github.com/bepass-org/bepass-relay.git
+cd bepass-relay
 go run *.go -b 0.0.0.0 -p 6666 
 ```
 
@@ -65,8 +65,8 @@ It's simple! Just follow these 3 easy steps:
    ```bash    
    sudo su
    cd /opt
-   git clone https://github.com/uoosef/cf-bepass.git
-   cd cf-bepass
+   git clone https://github.com/bepass-org/bepass-relay.git
+   cd bepass-relay
    CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath *.go
    ```
 
@@ -79,10 +79,10 @@ It's simple! Just follow these 3 easy steps:
    And paste the following code:
       ```
    	[Unit]
-   	Description=CF Bepass Service
+   	Description=Bepass Relay Service
    	
    	[Service]   
-   	ExecStart=/opt/cf-bepass/relay
+   	ExecStart=/opt/bepass-relay/relay
    	
    	[Install]
    	WantedBy=multi-user.target
