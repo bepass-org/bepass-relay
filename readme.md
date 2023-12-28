@@ -67,7 +67,7 @@ It's simple! Just follow these 3 easy steps:
    cd /opt
    git clone https://github.com/bepass-org/bepass-relay.git
    cd bepass-relay
-   CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath *.go
+   CGO_ENABLED=0 go build -o relay -ldflags '-s -w' -trimpath *.go
    ```
 
 2. Make a systemd service for Bepass in **/etc/systemd/system/cfb.service**:
