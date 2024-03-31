@@ -9,6 +9,8 @@ import (
 var (
 	// List of torrent trackers
 	torrentTrackers = []netip.Prefix{
+		netip.MustParsePrefix("127.0.0.0/8"),
+		netip.MustParsePrefix("::1/128"),
 		netip.MustParsePrefix("93.158.213.92/32"),
 		netip.MustParsePrefix("102.223.180.235/32"),
 		netip.MustParsePrefix("23.134.88.6/32"),
@@ -101,7 +103,6 @@ var (
 
 	// List of Cloudflare IP ranges
 	cfRanges = []netip.Prefix{
-		netip.MustParsePrefix("127.0.0.0/8"),
 		netip.MustParsePrefix("103.21.244.0/22"),
 		netip.MustParsePrefix("103.22.200.0/22"),
 		netip.MustParsePrefix("103.31.4.0/22"),
@@ -116,7 +117,6 @@ var (
 		netip.MustParsePrefix("190.93.240.0/20"),
 		netip.MustParsePrefix("197.234.240.0/22"),
 		netip.MustParsePrefix("198.41.128.0/17"),
-		netip.MustParsePrefix("::1/128"),
 		netip.MustParsePrefix("2400:cb00::/32"),
 		netip.MustParsePrefix("2405:8100::/32"),
 		netip.MustParsePrefix("2405:b500::/32"),
